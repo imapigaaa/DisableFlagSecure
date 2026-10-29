@@ -1,4 +1,14 @@
 <resources>
     <string name="app_name">Enable Screenshot</string>
-    <string name="xposed_description">Enabling screenshots in apps that normally wouldn\'t allow it.</string>
+    <string name="xposed_description">Enabling screenshots in apps that normally wouldn\'t allow it, with optional watermark overlay.</string>
+
+    <string name="wm_settings_title">Watermark settings</string>
+    <string name="wm_connected">Connected to LSPosed service</string>
+    <string name="wm_connecting">Connecting to LSPosed service…</string>
+    <string name="wm_no_service">LSPosed service not available</string>
+    <string name="wm_scope_hint">Apps selected in LSPosed scope will show a watermark. Force-stop target apps after saving to apply.</string>
+    <string name="wm_enable">Enable watermark</string>
+    <string name="wm_content_hint">Watermark text (optional; date &amp; time are always shown)</string>
+    <string name="wm_save">Save</string>
+    <string name="wm_saved">Saved</string>
 </resources>

@@ -2,12 +2,12 @@ package io.github.lsposed.disableflagsecure;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.hardware.display.DisplayManager;
 import android.os.Build;
 import android.util.Log;
 import android.util.Pair;
 import android.view.SurfaceControl;
+import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
@@ -471,14 +471,34 @@ public class DisableFlagSecure extends XposedModule {
     private void hookOnResume() throws NoSuchMethodException {
         var method = Activity.class.getDeclaredMethod("onResume");
         hookE(method).intercept(chain -> {
-            var activity = (Activity) chain.getThisObject();
-            new AlertDialog.Builder(activity)
-                    .setTitle("Enable Screenshot")
-                    .setMessage("Incorrect module usage, remove this app from scope.")
-                    .setCancelable(false)
-                    .setPositiveButton("OK", (dialog, which) -> System.exit(0))
-                    .show();
-            return chain.proceed();
+            var result = chain.proceed();
+            try {
+                var activity = (Activity) chain.getThisObject();
+                applyWatermark(activity);
+            } catch (Throwable t) {
+                log(Log.ERROR, TAG, "apply watermark failed", t);
+            }
+            return result;
         });
+    }
+
+    private static final String WM_PREFS_GROUP = "watermark";
+
+    @SuppressWarnings("unchecked")
+    private void applyWatermark(Activity activity) {
+        var prefs = getRemotePreferences(WM_PREFS_GROUP);
+        var decor = activity.getWindow().getDecorView();
+        if (!(decor instanceof ViewGroup group)) return;
+
+        var existing = group.findViewWithTag(WatermarkView.TAG);
+        if (!prefs.getBoolean("enabled", false)) {
+            if (existing != null) group.removeView(existing);
+            return;
+        }
+        if (existing != null) return;
+
+        var view = new WatermarkView(activity, prefs.getString("text", ""));
+        group.addView(view, new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     }
 }

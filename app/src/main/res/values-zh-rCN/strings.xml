@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">启用截图</string>
-    <string name="xposed_description">在通常不允许截图的应用中启用屏幕截图。</string>
+    <string name="xposed_description">在通常不允许截图的应用中启用屏幕截图，并可为目标应用叠加水印。</string>
+
+    <string name="wm_settings_title">水印设置</string>
+    <string name="wm_connected">已连接 LSPosed 服务</string>
+    <string name="wm_connecting">正在连接 LSPosed 服务…</string>
+    <string name="wm_no_service">未检测到 LSPosed 服务</string>
+    <string name="wm_scope_hint">在 LSPosed 作用域中勾选的应用将显示水印；保存后请强制停止目标应用再重新打开。</string>
+    <string name="wm_enable">启用水印</string>
+    <string name="wm_content_hint">水印文字（可留空，始终附带日期时间）</string>
+    <string name="wm_save">保存</string>
+    <string name="wm_saved">已保存</string>
 </resources>
