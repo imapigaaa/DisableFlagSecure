@@ -511,19 +511,21 @@ public class DisableFlagSecure extends XposedModule {
             if (info != null) {
                 var file = new File(new File(info.dataDir, "shared_prefs"), WM_LOCAL_PREFS_FILE + ".xml");
                 if (file.canRead()) {
-                    var parser = Xml.newPullParser();
-                    parser.setInput(new FileInputStream(file));
                     boolean enabled = false;
                     String text = "";
-                    int type;
-                    while ((type = parser.next()) != XmlPullParser.END_DOCUMENT) {
-                        if (type != XmlPullParser.START_TAG) continue;
-                        String name = parser.getAttributeValue(null, "name");
-                        if ("enabled".equals(name)) {
-                            enabled = "true".equals(parser.getAttributeValue(null, "value"));
-                        } else if ("text".equals(name)) {
-                            text = parser.getAttributeValue(null, "value");
-                            if (text == null) text = "";
+                    try (var in = new FileInputStream(file)) {
+                        var parser = Xml.newPullParser();
+                        parser.setInput(in, "UTF-8");
+                        int type;
+                        while ((type = parser.next()) != XmlPullParser.END_DOCUMENT) {
+                            if (type != XmlPullParser.START_TAG) continue;
+                            String name = parser.getAttributeValue(null, "name");
+                            if ("enabled".equals(name)) {
+                                enabled = "true".equals(parser.getAttributeValue(null, "value"));
+                            } else if ("text".equals(name)) {
+                                text = parser.getAttributeValue(null, "value");
+                                if (text == null) text = "";
+                            }
                         }
                     }
                     var config = new WatermarkConfig(enabled, text);
