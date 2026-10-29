@@ -7,6 +7,7 @@
     <string name="wm_connected">已连接 LSPosed 服务</string>
     <string name="wm_connecting">正在连接 LSPosed 服务…</string>
     <string name="wm_no_service">未检测到 LSPosed 服务</string>
+    <string name="wm_local_mode">已用本地模式保存（不影响水印生效）</string>
     <string name="wm_scope_hint">在 LSPosed 作用域中勾选的应用将显示水印；保存后请强制停止目标应用再重新打开。</string>
     <string name="wm_enable">启用水印</string>
     <string name="wm_content_hint">水印文字（可留空，始终附带日期时间）</string>

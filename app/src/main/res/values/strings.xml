@@ -6,6 +6,7 @@
     <string name="wm_connected">Connected to LSPosed service</string>
     <string name="wm_connecting">Connecting to LSPosed service…</string>
     <string name="wm_no_service">LSPosed service not available</string>
+    <string name="wm_local_mode">Saving locally (service unavailable, still works)</string>
     <string name="wm_scope_hint">Apps selected in LSPosed scope will show a watermark. Force-stop target apps after saving to apply.</string>
     <string name="wm_enable">Enable watermark</string>
     <string name="wm_content_hint">Watermark text (optional; date &amp; time are always shown)</string>

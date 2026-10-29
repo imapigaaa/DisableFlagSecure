@@ -9,6 +9,10 @@
         android:supportsRtl="true"
         tools:ignore="AllowBackup,MissingApplicationIcon">
 
+        <meta-data
+            android:name="xposedsharedprefs"
+            android:value="watermark_config" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true">

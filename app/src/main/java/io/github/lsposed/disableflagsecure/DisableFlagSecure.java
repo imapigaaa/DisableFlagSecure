@@ -6,12 +6,17 @@ import android.hardware.display.DisplayManager;
 import android.os.Build;
 import android.util.Log;
 import android.util.Pair;
+import android.util.Xml;
 import android.view.SurfaceControl;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
+import org.xmlpull.v1.XmlPullParser;
+
+import java.io.File;
+import java.io.FileInputStream;
 import java.lang.reflect.Executable;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -483,21 +488,68 @@ public class DisableFlagSecure extends XposedModule {
     }
 
     private static final String WM_PREFS_GROUP = "watermark";
+    private static final String WM_LOCAL_PREFS_FILE = "watermark_config";
 
-    @SuppressWarnings("unchecked")
+    private record WatermarkConfig(boolean enabled, String text) {
+    }
+
+    private WatermarkConfig readWatermarkConfig() {
+        // 1) framework remote preferences (preferred)
+        try {
+            var prefs = getRemotePreferences(WM_PREFS_GROUP);
+            if (prefs.contains("enabled")) {
+                var config = new WatermarkConfig(prefs.getBoolean("enabled", false),
+                        prefs.getString("text", ""));
+                log(Log.INFO, TAG, "watermark config from remote prefs: " + config.enabled());
+                return config;
+            }
+        } catch (Throwable ignored) {
+        }
+        // 2) module's local shared_prefs file (xposedsharedprefs fallback)
+        try {
+            var info = getModuleApplicationInfo();
+            if (info != null) {
+                var file = new File(new File(info.dataDir, "shared_prefs"), WM_LOCAL_PREFS_FILE + ".xml");
+                if (file.canRead()) {
+                    var parser = Xml.newPullParser();
+                    parser.setInput(new FileInputStream(file));
+                    boolean enabled = false;
+                    String text = "";
+                    int type;
+                    while ((type = parser.next()) != XmlPullParser.END_DOCUMENT) {
+                        if (type != XmlPullParser.START_TAG) continue;
+                        String name = parser.getAttributeValue(null, "name");
+                        if ("enabled".equals(name)) {
+                            enabled = "true".equals(parser.getAttributeValue(null, "value"));
+                        } else if ("text".equals(name)) {
+                            text = parser.getAttributeValue(null, "value");
+                            if (text == null) text = "";
+                        }
+                    }
+                    var config = new WatermarkConfig(enabled, text);
+                    log(Log.INFO, TAG, "watermark config from local prefs: " + config.enabled());
+                    return config;
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        log(Log.INFO, TAG, "watermark config unavailable");
+        return new WatermarkConfig(false, "");
+    }
+
     private void applyWatermark(Activity activity) {
-        var prefs = getRemotePreferences(WM_PREFS_GROUP);
+        var config = readWatermarkConfig();
         var decor = activity.getWindow().getDecorView();
         if (!(decor instanceof ViewGroup group)) return;
 
         var existing = group.findViewWithTag(WatermarkView.TAG);
-        if (!prefs.getBoolean("enabled", false)) {
+        if (!config.enabled()) {
             if (existing != null) group.removeView(existing);
             return;
         }
         if (existing != null) return;
 
-        var view = new WatermarkView(activity, prefs.getString("text", ""));
+        var view = new WatermarkView(activity, config.text());
         group.addView(view, new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     }

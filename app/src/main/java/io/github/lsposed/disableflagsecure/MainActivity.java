@@ -1,6 +1,7 @@
 package io.github.lsposed.disableflagsecure;
 
 import android.app.Activity;
+import android.content.Context;
 import android.os.Bundle;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -17,6 +18,7 @@ import io.github.libxposed.service.XposedServiceHelper;
 
 public class MainActivity extends Activity {
     private static final String PREFS_GROUP = "watermark";
+    private static final String LOCAL_PREFS_FILE = "watermark_config";
 
     private volatile XposedService service;
     private Switch enableSwitch;
@@ -33,7 +35,7 @@ public class MainActivity extends Activity {
         @Override
         public void onServiceDied(@NonNull XposedService s) {
             service = null;
-            runOnUiThread(() -> statusView.setText(R.string.wm_no_service));
+            runOnUiThread(() -> statusView.setText(R.string.wm_local_mode));
         }
     };
 
@@ -89,7 +91,14 @@ public class MainActivity extends Activity {
         root.addView(save, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
 
+        loadLocal();
         XposedServiceHelper.registerListener(serviceListener);
+    }
+
+    private void loadLocal() {
+        var prefs = getSharedPreferences(LOCAL_PREFS_FILE, Context.MODE_PRIVATE);
+        enableSwitch.setChecked(prefs.getBoolean("enabled", false));
+        contentInput.setText(prefs.getString("text", ""));
     }
 
     private void loadConfig() {
@@ -101,25 +110,36 @@ public class MainActivity extends Activity {
             contentInput.setText(prefs.getString("text", ""));
             statusView.setText(R.string.wm_connected);
         } catch (Throwable t) {
-            statusView.setText(R.string.wm_no_service);
+            statusView.setText(R.string.wm_local_mode);
         }
     }
 
     private void save() {
-        var s = service;
-        if (s == null) {
-            Toast.makeText(this, R.string.wm_no_service, Toast.LENGTH_SHORT).show();
-            return;
-        }
+        boolean enabled = enableSwitch.isChecked();
+        String text = contentInput.getText().toString();
+
+        // Always write local prefs (read by the hook via xposedsharedprefs fallback)
         try {
-            var prefs = s.getRemotePreferences(PREFS_GROUP);
-            prefs.edit()
-                    .putBoolean("enabled", enableSwitch.isChecked())
-                    .putString("text", contentInput.getText().toString())
-                    .apply();
-            Toast.makeText(this, R.string.wm_saved, Toast.LENGTH_SHORT).show();
-        } catch (Throwable t) {
-            Toast.makeText(this, R.string.wm_no_service, Toast.LENGTH_SHORT).show();
+            var prefs = getSharedPreferences(LOCAL_PREFS_FILE, Context.MODE_PRIVATE);
+            prefs.edit().putBoolean("enabled", enabled).putString("text", text).apply();
+        } catch (Throwable ignored) {
         }
+
+        // Also mirror to remote prefs when the LSPosed service is available
+        var s = service;
+        boolean remote = false;
+        if (s != null) {
+            try {
+                s.getRemotePreferences(PREFS_GROUP).edit()
+                        .putBoolean("enabled", enabled)
+                        .putString("text", text)
+                        .apply();
+                remote = true;
+            } catch (Throwable ignored) {
+            }
+        }
+
+        statusView.setText(remote ? R.string.wm_connected : R.string.wm_local_mode);
+        Toast.makeText(this, R.string.wm_saved, Toast.LENGTH_SHORT).show();
     }
 }
